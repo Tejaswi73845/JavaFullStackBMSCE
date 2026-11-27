@@ -1,0 +1,16 @@
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" routerLink="/add-employee">
+      <span class="brand-mark" aria-hidden="true">E</span>
+      <span>Employee <span class="brand-light">Management</span></span>
+    </a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a routerLink="/add-employee" routerLinkActive="active">Add employee</a>
+      <a routerLink="/view-employees" routerLinkActive="active">Directory</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-content">
+  <router-outlet></router-outlet>
+</main>

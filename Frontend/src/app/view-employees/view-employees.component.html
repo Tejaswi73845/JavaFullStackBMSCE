@@ -1,0 +1,259 @@
+<section class="list-page">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">YOUR PEOPLE</p>
+      <h1>Employee directory</h1>
+      <p class="heading-copy">Everyone on your team, all in one place.</p>
+    </div>
+    <button type="button" class="refresh-button" (click)="loadEmployees()" [disabled]="isLoading">
+      <span class="refresh-icon" aria-hidden="true">↻</span>
+      {{ isLoading ? 'Loading...' : 'Refresh' }}
+    </button>
+  </div>
+
+  <p class="feedback error" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
+  <p class="feedback success" role="status" *ngIf="statusMessage">{{ statusMessage }}</p>
+  <p class="loading" *ngIf="isLoading">Loading employees...</p>
+
+  <div class="directory-toolbar" *ngIf="!isLoading && !errorMessage && employees.length > 0">
+    <label class="directory-field">
+      <span>Search</span>
+      <input
+        type="search"
+        placeholder="Name or department"
+        [(ngModel)]="searchTerm"
+        [ngModelOptions]="{ standalone: true }"
+      />
+    </label>
+    <label class="directory-field">
+      <span>Department</span>
+      <select [(ngModel)]="selectedDepartment" [ngModelOptions]="{ standalone: true }">
+        <option value="">All departments</option>
+        <option *ngFor="let department of departments" [value]="department">
+          {{ department }}
+        </option>
+      </select>
+    </label>
+    <label class="directory-field">
+      <span>Sort by</span>
+      <select [(ngModel)]="sortKey" [ngModelOptions]="{ standalone: true }">
+        <option value="default">Default order</option>
+        <option value="name">Name</option>
+        <option value="department">Department</option>
+        <option value="age">Age</option>
+        <option value="salary">Salary</option>
+        <option value="id">ID</option>
+      </select>
+    </label>
+    <button
+      type="button"
+      class="sort-direction"
+      (click)="toggleSortDirection()"
+      [disabled]="sortKey === 'default'"
+      [attr.aria-label]="sortDirection === 'asc' ? 'Sort ascending' : 'Sort descending'"
+    >
+      {{ sortDirection === 'asc' ? 'Ascending ↑' : 'Descending ↓' }}
+    </button>
+    <button
+      type="button"
+      class="clear-controls"
+      (click)="clearDirectoryControls()"
+      [disabled]="!hasActiveControls"
+    >
+      Reset
+    </button>
+    <p class="results-count" role="status">
+      Showing {{ filteredEmployees.length }} of {{ employees.length }} employees
+    </p>
+  </div>
+
+  <div class="table-wrap" *ngIf="!isLoading && !errorMessage">
+    <table *ngIf="filteredEmployees.length > 0; else noEmployees">
+      <thead>
+        <tr>
+          <th scope="col" class="id-column">ID</th>
+          <th scope="col">EMPLOYEE</th>
+          <th scope="col">DEPARTMENT</th>
+          <th scope="col">AGE</th>
+          <th scope="col" class="salary-column">SALARY</th>
+          <th scope="col" class="actions-heading">ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let employee of filteredEmployees">
+          <td class="id-column">{{ employee.id }}</td>
+          <td>
+            <span class="employee-name">
+              <span class="avatar" aria-hidden="true">{{ employee.name.charAt(0) }}</span>
+              <span>{{ employee.name }}</span>
+            </span>
+          </td>
+          <td>{{ employee.department }}</td>
+          <td>{{ employee.age }}</td>
+          <td class="salary-column">{{ employee.salary | number: '1.0-2' }}</td>
+          <td class="actions-cell">
+            <div class="row-actions" *ngIf="pendingDeleteId !== employee.id">
+              <button
+                type="button"
+                class="text-action"
+                (click)="startEditing(employee)"
+                [disabled]="isSaving || isDeletingId !== null"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                class="text-action delete-action"
+                (click)="requestDelete(employee)"
+                [disabled]="isSaving || isDeletingId !== null"
+              >
+                Delete
+              </button>
+            </div>
+            <div class="delete-confirm" *ngIf="pendingDeleteId === employee.id">
+              <span>Delete this employee?</span>
+              <button
+                type="button"
+                class="confirm-delete"
+                (click)="deleteEmployee(employee)"
+                [disabled]="isDeletingId === employee.id"
+              >
+                {{ isDeletingId === employee.id ? 'Deleting...' : 'Confirm' }}
+              </button>
+              <button
+                type="button"
+                class="cancel-delete"
+                (click)="cancelDelete()"
+                [disabled]="isDeletingId === employee.id"
+              >
+                Cancel
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noEmployees>
+      <div class="empty-state">
+        <span class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M16 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H6.4A3.4 3.4 0 0 0 3 18.4V20m6.5-8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-7.5a4 4 0 0 1 0 7.7m3.5 7.8v-1.6a3.4 3.4 0 0 0-2.5-3.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <h2>{{ employees.length > 0 ? 'No matching employees' : 'No employees yet' }}</h2>
+        <p>
+          {{
+            employees.length > 0
+              ? 'Try another search or department, or reset your controls.'
+              : 'Your new team members will appear here.'
+          }}
+        </p>
+        <button
+          type="button"
+          class="clear-controls"
+          *ngIf="employees.length > 0 && hasActiveControls"
+          (click)="clearDirectoryControls()"
+        >
+          Clear filters
+        </button>
+      </div>
+    </ng-template>
+  </div>
+</section>
+
+<div class="modal-backdrop" *ngIf="editingEmployee">
+  <section
+    class="edit-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="edit-dialog-title"
+  >
+    <div class="modal-heading">
+      <div>
+        <p class="eyebrow">EMPLOYEE DETAILS</p>
+        <h2 id="edit-dialog-title">Edit employee</h2>
+      </div>
+      <button
+        type="button"
+        class="close-modal"
+        aria-label="Close edit form"
+        (click)="cancelEditing()"
+        [disabled]="isSaving"
+      >
+        ×
+      </button>
+    </div>
+
+    <p class="feedback error" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+    <form #editEmployeeForm="ngForm" (ngSubmit)="saveChanges()">
+      <label for="edit-name">Full name</label>
+      <input
+        id="edit-name"
+        type="text"
+        name="editName"
+        [(ngModel)]="editForm.name"
+        required
+        minlength="2"
+        autocomplete="name"
+      />
+
+      <label for="edit-department">Department</label>
+      <input
+        id="edit-department"
+        type="text"
+        name="editDepartment"
+        [(ngModel)]="editForm.department"
+        required
+      />
+
+      <div class="form-row">
+        <div>
+          <label for="edit-age">Age</label>
+          <input
+            id="edit-age"
+            type="number"
+            name="editAge"
+            [(ngModel)]="editForm.age"
+            required
+            min="22"
+            max="60"
+          />
+        </div>
+        <div>
+          <label for="edit-salary">Salary</label>
+          <input
+            id="edit-salary"
+            type="number"
+            name="editSalary"
+            [(ngModel)]="editForm.salary"
+            required
+            min="0"
+            step="0.01"
+          />
+        </div>
+      </div>
+
+      <label for="update-mode">Update behavior</label>
+      <select id="update-mode" name="updateMode" [(ngModel)]="updateMode">
+        <option value="patch">Partial update (PATCH)</option>
+        <option value="put">Replace all fields (PUT)</option>
+      </select>
+
+      <p class="modal-note" *ngIf="updateMode === 'patch'">
+        Only fields you change will be sent to the server.
+      </p>
+      <p class="modal-note" *ngIf="updateMode === 'put'">
+        All employee fields will be replaced with these values.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" (click)="cancelEditing()" [disabled]="isSaving">
+          Cancel
+        </button>
+        <button type="submit" class="save-button" [disabled]="editEmployeeForm.invalid || isSaving">
+          {{ isSaving ? 'Saving...' : 'Save changes' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
